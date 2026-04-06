@@ -9,10 +9,29 @@ const RequestRouter = require('./routes/request')
 
 const app = express()
 
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+const ALLOWED_ORIGINS = [
+  'http://localhost:5173',
+  ...(process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(',').map((o) => o.trim())
+    : []),
+]
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error(`CORS: origin ${origin} not allowed`))
+    }
+  },
   credentials: true,
-}))
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}
+
+app.use(cors(corsOptions))
+app.options('*', cors(corsOptions))  // handle preflight for all routes
+
 app.use(express.json())
 app.use(cookieParser())
 
